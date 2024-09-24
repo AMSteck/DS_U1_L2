@@ -1,12 +1,10 @@
 #Alannnah Steck
-#U1L2
-#visualizing rat growth
+#U1L1
+#A Very Large Rat 
 from Rats import Rat
-
-
 import random
 import time
-import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 
 GOAL = 50000                # Target average weight (grams)
@@ -20,16 +18,6 @@ MUTATE_MAX = 1.2            # Scalar mutation - most beneficial
 LITTER_SIZE = 8             # Pups per litter (1 mating pair)
 GENERATIONS_PER_YEAR = 10   # How many generations are created each year
 GENERATION_LIMIT = 500      # Generational cutoff - stop breeded no matter what
-
-def findBig(biggestRats):
-  bigWeight = biggestRats[0].getWeight()
-  bigRat = biggestRats[0]
-  for rat in biggestRats:
-    ratWeight = rat.getWeight()
-    if ratWeight > bigWeight:
-      bigWeight = ratWeight
-      bigRat = rat
-  return bigRat
 
 def fitness(rats, pups):
   for index in range(2):
@@ -45,22 +33,18 @@ def fitness(rats, pups):
   mean = int(totalWeight/timesAdded)
   return mean >= GOAL, mean
 
-def select(rats):
+def select(rats, biggest):
   biggestRats = []
-  smallestRats = []
   for index in range(2):
     for rat in rats[index]:
       status = rat.canBreed()
       if status == False:
-        rats[index].remove(rat)
+        if rat is biggest:
+          biggestRats.append(biggest)
+          rats[index].remove(rat)
+        else:
+          rats[index].remove(rat)
   for index in range(2): 
-    smallest = rats[index][0]
-    smallWeight = smallest.getWeight()
-    for rat in rats[index]:
-      ratWeight = rat.getWeight()
-      if ratWeight < smallWeight:
-         smallest = rat
-    smallestRats.append(smallest)
     amount = len(rats[index])
     while amount > 10:
       smallest = rats[index][0]
@@ -72,29 +56,24 @@ def select(rats):
          smallWeight = smallest.getWeight()
       rats[index].remove(smallest)
       amount -= 1
-    biggest = rats[index][0]
-    bigWeight = biggest.getWeight()
+    ratbiggest = rats[index][0]
+    bigWeight = ratbiggest.getWeight()
     for rat in rats[index]:
       ratWeight = rat.getWeight()
       if ratWeight > bigWeight:
          biggest = rat
-    biggestRats.append(biggest)
-  biggest = biggestRats[0]
-  bigWeight = biggest.getWeight()
+    biggestRats.append(ratbiggest)
+  ratbiggest = rats[index][0]
+  bigWeight = ratbiggest.getWeight()
   for rat in biggestRats:
     ratWeight = rat.getWeight()
     if ratWeight > bigWeight:
       biggest = rat
-  smallest = smallestRats[0]
-  smallWeight = smallest.getWeight()
-  for rat in smallestRats:
-    ratWeight = rat.getWeight()
-    if ratWeight < smallWeight:
-      smallest = rat
 
-  return rats, biggest, smallest
+  return rats, biggest
 
-def breed(rats):
+
+def breed(rats): #fix weight problem, limit breeding based on previous litters
   pups = [[],[]]
   random.shuffle(rats[0])
   for time in range(10):
@@ -157,36 +136,6 @@ def initial_population():
   
   return rats
 
-def fileToList(files):
-  newFiles = []
-  for item in files:
-    with open(item, 'r') as openFile:
-      contents = openFile.read()
-    contents = contents.split(",\t")
-    for item in contents:
-      try:
-        ind = contents.index(item)
-        item = int(item) 
-        contents[ind] = item
-      except:
-        contents.remove(item)
-    newFiles.append(contents)
-  return newFiles
-
-def makeGraph(files):
-  avgSet = files[0]
-  maxSet = files[1]
-  minSet = files[2]
-
-  for data in [avgSet,maxSet,minSet]:
-    plt.plot(data)
-  plt.title("Rat Weights")
-  plt.xlabel("generation")
-  plt.ylabel("weight (grams)")
-
-  plt.legend(["averages","biggest","smallest"])
-  plt.savefig("sample.png")
-
 def main():
   start = time.time()
   generations = 0
@@ -194,19 +143,14 @@ def main():
   finished = False
   means = []
   meansStr =""
-  biggestList = []
-  smallestList = []
-  bigStr =""
-  smallStr =""
+  biggest = None 
   #code n stuff :)
   rats = initial_population()
   while finished == False and generations < GENERATION_LIMIT:
     
     finished, mean = fitness(rats, pups) #kids join parents, add groups
     means.append(mean)
-    rats, biggest, smallest = select(rats)
-    biggestList.append(biggest)
-    smallestList.append(smallest)
+    rats, biggest = select(rats, biggest)
     pups = breed(rats) 
     pups = mutate(pups)
     generations += 1
@@ -222,31 +166,13 @@ def main():
   print(f"Experiment Duration: ~{years} years")
   print(f"Simulation Duration : {timeRun}\n\n")
   print("The Largest Rat")
-  biggestRat = findBig(biggestList)
-  print(biggestRat) 
-  for bigRat in biggestList:
-    bigRat = bigRat.getWeight()
-    bigRat = str(bigRat)
-    bigStr += f"{bigRat},\t"
-    with open("maximums.txt", 'w') as openFile:
-      openFile.write(bigStr) 
-  for smallRat in smallestList:
-    smallRat = smallRat.getWeight()
-    smallRat = str(smallRat)
-    smallStr += f"{smallRat},\t"
-    with open("minimums.txt", 'w') as openFile:
-      openFile.write(smallStr) 
+  print(biggest) 
   print("\n\nGeneration Weight Averages (grams)\n")
   for mean in means:
     mean = str(mean)
     meansStr += f"{mean},\t"
-    with open("averages.txt", 'w') as openFile:
-      openFile.write(meansStr) 
 
   print(meansStr)
-  files = ["averages.txt","maximums.txt","minimums.txt"]
-  files = fileToList(files)
-  makeGraph(files)
 
   
   
